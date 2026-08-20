@@ -1,0 +1,104 @@
+# Agents specific
+CLAUDE.md
+AGENTS.md
+
+# Attacks's working log. Kept locally, deliberately not published: it is a
+# candid record of what was tried and what broke, including other people's
+# defects. An ignore rule alone would not have untracked it — it was removed
+# from the index with `git rm --cached`, and this line stops `git add .`
+# putting it back. Note the file stays in history before that commit.
+GREGOR_WORKLOG.md
+
+# Internal working documents, untracked before the jury hand-in. Same mechanism
+# as the line above: `git rm --cached` did the untracking, these lines stop
+# `git add .` putting them back, and every file stays on disk and in history.
+#
+# CLAUDE-CODE-PROMPT.md          how to point an AI at this repo — invites the
+#                                wrong conversation with a reviewer
+# PITCH-PLAN.md                  the stage script next to the list of gaps
+# PROJECT_COMPLETE_OVERVIEW.md   superseded by README.md + TECHNICAL_DETAILS.md
+# docs/TASK-*.md                 work assignments for named people
+#
+# Kept on purpose, do NOT add here: PLAYBOOK.md (43 citations from code,
+# judge.py and scoring.py:251 among them), PROJECT-STATE.md (technical debt
+# #12/#14/#15 are cited by number in comments), SECRETS.md (placeholders only,
+# it documents the discipline), tools/art50check.py (736df3d: origin of the
+# 0-of-24 finding).
+CLAUDE-CODE-PROMPT.md
+PITCH-PLAN.md
+PROJECT_COMPLETE_OVERVIEW.md
+docs/TASK-ATTACKS.md
+docs/TASK-GRC.md
+docs/TASK-BACKEND.md
+
+# Never commit secrets
+#
+# `.env` and `.env.*` carry no slash, so they already match at any depth -
+# lab/.env, deploy/.env and calibration/.env are covered by those two lines.
+# What they do NOT cover is a secret file whose name merely ends in .env, and
+# lab/.env.example names two of those as things people are likely to create.
+# So: any *.env, plus the one named file it warns about.
+.env
+.env.*
+!.env.example
+*.env
+lab/bots/keys.yaml
+*.key
+*.pem
+credentials.json
+secrets.yaml
+
+# Local Compose overrides. Machine-specific by definition (a port remap, a
+# different volume), and untracked is not the same as ignored: `git add -A`
+# sweeps up whatever is lying around, and this repository is public.
+docker-compose.override.yml
+
+# Scan output: customer system prompts and full transcripts.
+# These are customer trade secrets. They never reach version control.
+results/
+scans/
+*.scan.json
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Database
+*.db
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# --- Brand source material: local only, never committed --------------------
+#
+# This repository is public. Everything below is licensed stock, or derived
+# from it, and the licence forbids sub-licensing and inclusion in an online
+# archive. The shipped mark is original geometry and depends on none of it.
+#
+# The app loads brand assets only from frontend/assets/brand/. Nothing in a
+# build may reference Brand/ at all.
+#
+# This is an allowlist, not a list of patterns, because the list of patterns
+# already failed. New_Logo.png was added on 2026-08-18, matched none of
+# Screenshot* / mantis-* / LLMantis/ / *.zip, and reached the public remote
+# carrying the owner's real name in a Canva XMP block. A new filename cannot
+# outrun an allowlist; it walks straight past a list of names.
+Brand/*
+!Brand/llmantis-*.svg
+
+# tool output
+art50-results.csv
+
+# Governance V2 — generated cross-check output only. GOVERNANCE_V2_REPORT.md
+# is the single official assessment of record; this file is a reproducible,
+# on-demand output of governance/scripts/run_governance_v2.py and must never
+# become a second, potentially-stale or -conflicting tracked source of truth.
+governance/reports/GOVERNANCE_V2_AUTOMATED_RERUN.md

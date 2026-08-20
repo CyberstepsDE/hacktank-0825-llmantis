@@ -1,0 +1,131 @@
+# LLMantis — Setup
+
+Run these once after cloning. Takes about 5 minutes (was 2, before the
+database was added).
+
+## 1. Clone and enter
+
+```bash
+git clone git@github.com:CyberstepsDE/hacktank-0825-llmantis.git
+cd LLMantis
+```
+
+## 2. Create a virtual environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+On Windows: `venv\Scripts\activate`
+
+Your prompt should now start with `(venv)`. If it doesn't, stop and fix this
+before continuing. Everything below assumes it's active.
+
+**You must run `source venv/bin/activate` every time you open a new terminal.**
+
+## 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Then install the browser Playwright drives. `pip` installs the Playwright
+*library*, not the Chromium *binary*, and the Art.-50 Check
+(`backend/art50engine.py`) reads the live DOM of a real page. Without this step
+`POST /api/art50check` fails with an "executable doesn't exist" error while
+everything else works, which is a confusing way to find out.
+
+```bash
+python -m playwright install chromium
+```
+
+It downloads roughly 150 MB once, into your home directory rather than the venv.
+The Dockerfile does the same thing with `--with-deps`, which additionally pulls
+the system libraries a slim Linux image lacks; on macOS you don't need it.
+
+## 4. Create your local config
+
+```bash
+cp .env.example .env
+```
+
+`PROVIDER` defaults to `azure` (`backend/config.py:31`) and `JUDGE_MODEL` to
+`gpt-4.1` (`config.py:49`), so set the Azure variables:
+
+- `AZURE_URL`, the full chat-completions URL taken verbatim from the
+  deployment page (`config.py:41`).
+- `AZURE_KEY`, the deployment key (`config.py:42`). `AZURE_AUTH` picks the
+  header style and defaults to `api-key` (`config.py:43`).
+
+`backend/llm.py:224-227` also registers `mistral`, which reads
+`MISTRAL_API_KEY` (`config.py:33`). It is not the default.
+
+There is no mock or offline mode. Without a key every attack comes back as
+an error and the scan is issued no grade, under an HTTP 200.
+
+**Never commit `.env`.** It's in `.gitignore`. It will hold an API key.
+
+## 5. Start the database
+
+Scans, organizations, API keys and branding all live in Postgres now, not
+in memory — this step is not optional:
+
+```bash
+docker compose up -d      # starts Postgres, see docker-compose.yml
+alembic upgrade head       # applies every migration in alembic/versions/
+```
+
+## 6. Check it works
+
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+
+In another terminal:
+
+```bash
+curl -s localhost:8000/api/health
+```
+
+You should get back `{"status":"ok", ...}`. Open http://localhost:8000, pick
+a demo bot, press **Run scan**.
+
+## Adding a new dependency
+
+Don't just `pip install`. Add the pinned version to `requirements.txt` and commit
+it, so everyone gets the same version.
+
+```bash
+pip install somepackage==1.2.3
+echo "somepackage==1.2.3" >> requirements.txt
+```
+
+## Changed `backend/models.py`?
+
+Generate a migration before committing — never hand-edit the schema or ship
+a model change without one:
+
+```bash
+alembic revision --autogenerate -m "describe the change"
+alembic upgrade head
+```
+
+## Daily routine
+
+```bash
+cd LLMantis
+source venv/bin/activate
+git pull
+pip install -r requirements.txt   # in case someone added a dependency
+alembic upgrade head              # in case someone added a migration
+docker compose up -d              # in case Postgres isn't already running
+```
+
+## Auth, if you're building frontend for it
+
+`POST /api/auth/register` / `/login` return `{"access_token": "...", "token_type": "bearer"}`.
+Send it back as `Authorization: Bearer <token>` on any 🔒 endpoint (see the
+table in `README.md`). Set a real `JWT_SECRET` in `.env` — leaving it empty
+logs everyone out on every server restart (that's the intended dev default,
+not a bug).
